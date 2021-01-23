@@ -242,7 +242,19 @@ class RandoHandler(RaceHandler):
         return
 
     @monitor_cmd
-    async def ex_startrace(self, args, message):
+    async def ex_lock(self, args, message):
+        self.state["locked"] = True
+        await self.send_mesage("Seeds may now only be rolled by Race Monitors.")
+
+    @monitor_cmd
+    async def ex_unlock(self, args, message):
+        self.state["unlocked"] = False
+        await self.send_mesage("Seeds may now be rolled by anyone.")
+
+    async def ex_rollseed(self, args, message):
+        if self.state.get("locked") and not can_monitor(message):
+            await self.send_mesage("Seeds are currently locked to Race Monitors, the Room Creators, or Category Moderators.")
+            return
         if self.state.get("race_type") == RaceType.SPOILER:
             await self.startspoilerlograce(args, message)
         elif self.state.get("race_type") == RaceType.STANDARD:
