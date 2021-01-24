@@ -5,7 +5,7 @@ from enum import Enum
 
 class RandoHandler(RaceHandler):
     stop_at = ["cancelled", "finished"]
-    #Meaningless push to test something
+    
     STANDARD_RACE_GOAL = "Standard Race - Defeat Ganondorf"
     STANDARD_RACE_PERMALINK = "MS44LjAAU3RhbmRhcmRSYWNlRXhhbXBsZQAXAwQATjDADAAAAAAAAAA="
     SPOILER_LOG_GOAL = "Spoiler Log"
