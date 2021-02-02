@@ -5,6 +5,7 @@ import random
 import string
 import uuid
 
+
 class Generator:
     def __init__(self, github_token):
         self.github_token = github_token
@@ -20,7 +21,7 @@ class Generator:
         permalink = permalink_file.read()
         permalink_file.close()
 
-        if generate_spoiler:
+        if generate_spoiler_log:
             spoiler_log_file_name = f"spoiler_log_{seed_name}.txt"
             spoiler_log_file = open(spoiler_log_file_name, "r")
             spoiler_log = spoiler_log_file.read()
@@ -33,7 +34,7 @@ class Generator:
                 public=False,
                 files={f"spoiler_log_{timestamp}.txt": InputFileContent(spoiler_log)},
                 description="The Wind Waker Randomizer Spoiler Log"
-                )
+            )
             spoiler_log_url = gist.html_url
         else:
             spoiler_log_url = None

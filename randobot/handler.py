@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from racetime_bot import RaceHandler, monitor_cmd, can_monitor
 from enum import Enum
 
+
 class RandoHandler(RaceHandler):
     stop_at = ["cancelled", "finished"]
     
@@ -11,6 +12,9 @@ class RandoHandler(RaceHandler):
     SPOILER_LOG_GOAL = "Spoiler Log"
     SPOILER_LOG_PERMALINK = "MS44LjAARXhhbXBsZVNwb2lsZXJMb2cAFwMGAg8QwAwAAAAAAAAA"
 
+
+    STANDARD_RACE_PERMALINK = "MS44LjAAU3RhbmRhcmRSYWNlRXhhbXBsZQAXAwQATjDADAAAAAAAAAA="
+    SPOILER_LOG_PERMALINK = "MS44LjAARXhhbXBsZVNwb2lsZXJMb2cAFwMGAg8QwAwAAAAAAAAA"
 
     def __init__(self, generator, **kwargs):
         super().__init__(**kwargs)
@@ -53,6 +57,42 @@ class RandoHandler(RaceHandler):
                 if self.state.get("seed_rolled"):
                     seconds_remaining = self.seconds_remaining(False)
 
+                    if not self.state.get("40_warning_sent") and seconds_remaining < 2400:  # 40 minutes
+                        await self.send_message("You have 40 minutes until the race starts!")
+                        self.state["40_warning_sent"] = True
+
+                    if not self.state.get("30_warning_sent") and seconds_remaining < 1800:  # 30 minutes
+                        await self.send_message("You have 30 minutes until the race starts!")
+                        self.state["30_warning_sent"] = True
+
+                    if not self.state.get("20_warning_sent") and seconds_remaining < 1200:  # 20 minutes
+                        await self.send_message("You have 20 minutes until the race starts!")
+                        self.state["20_warning_sent"] = True
+
+                    if not self.state.get("permalink_available") and seconds_remaining < 900:  # 15 minutes
+                        await self.send_message("You have 15 minutes until the race starts!")
+                        permalink = self.state.get("permalink")
+                        await self.send_message(f"Permalink: {permalink}")
+                        self.state["permalink_available"] = True
+
+                    if not self.state.get("10_warning_sent") and seconds_remaining < 600:  # 10 minutes
+                        await self.send_message("You have 10 minutes until the race starts!")
+                        await self.send_message("Please start your stream if you haven't done so already!")
+                        self.state["10_warning_sent"] = True
+
+                    if not self.state.get("5_warning_sent") and seconds_remaining < 300:  # 5 minutes
+                        await self.send_message("You have 5 minutes until the race starts!")
+                        self.state["5_warning_sent"] = True
+
+                    if not self.state.get("file_name_available") and seconds_remaining < 60:  # 1 minute
+                        await self.send_message("You have 1 minute until the race starts!")
+                        file_name = self.state.get("file_name")
+                        await self.send_message(f"File Name: {file_name}")
+                        self.state["file_name_available"] = True
+
+                    if not self.state.get("race_started") and seconds_remaining < 15:
+                        await self.force_start()
+                        self.state["race_started"] = True
             finally:
                 await asyncio.sleep(0.5)
 
@@ -62,16 +102,12 @@ class RandoHandler(RaceHandler):
     async def race_data(self, data):
         self.data = data.get("race")
 
-        if self.state.get("seed_rolled"):
-            finished_entrants = set(
-                map(
-                    lambda entrant: entrant.get("user").get("name"),
-                    filter(
-                        lambda entrant: entrant.get("status").get("value") == "done",
-                        self.data.get("entrants")
-                    )
-                )
-            )
+        if self.state.get("spoiler_log_seed_rolled"):
+            finished_entrants = {
+                entrant.get("user").get("name")
+                for entrant in self.data.get("entrants")
+                if entrant.get("status").get("value") == "done"
+            }
 
             new_finishers = list(finished_entrants - self.state["finished_entrants"])
 
@@ -160,7 +196,7 @@ class RandoHandler(RaceHandler):
     async def ex_tingletuner(self, args, message):
         if self.state.get("tingle_tuner_banned"):
             await self.send_message("The Tingle Tuner is banned in this race.")
-        elif self.state.get("seed_rolled"):
+        elif self.state.get("spoiler_log_seed_rolled"):
             await self.send_message("The Tingle Tuner is allowed in this race.")
         else:
             await self.send_message(
@@ -171,7 +207,7 @@ class RandoHandler(RaceHandler):
     async def ex_bantingletuner(self, args, message):
         if self.state.get("tingle_tuner_banned"):
             await self.send_message("The Tingle Tuner is already banned in this race.")
-        elif self.state.get("seed_rolled") and not can_monitor(message):
+        elif self.state.get("spoiler_log_seed_rolled") and not can_monitor(message):
             await self.send_message("The race has already started! The Tingle Tuner is allowed in this race.")
         else:
             self.state["tingle_tuner_banned"] = True
@@ -185,13 +221,16 @@ class RandoHandler(RaceHandler):
             await self.send_message("The Tingle Tuner is now allowed in this race.")
 
     async def ex_spoilerlogurl(self, args, message):
-        if self.state.get("seed_rolled") and (can_monitor(message) or self.state.get("spoiler_log_available")):
+        if (
+            self.state.get("spoiler_log_seed_rolled")
+            and (can_monitor(message) or self.state.get("spoiler_log_available"))
+        ):
             spoiler_log_url = self.state.get("spoiler_log_url")
             await self.send_message(f"Spoiler Log: {spoiler_log_url}")
 
     async def ex_permalink(self, args, message):
-        permalink = self.state.get("permalink")
-        if self.state.get("seed_rolled") and (can_monitor(message) or self.state.get("permalink_available")):
+        if self.state.get("permalink") and (can_monitor(message) or self.state.get("permalink_available")):
+            permalink = self.state.get("permalink")
             await self.send_message(f"Permalink: {permalink}")
         else:
             await self.send_message(f"Permalink is not available! Current Settings Example: {permalink}")
@@ -220,8 +259,8 @@ class RandoHandler(RaceHandler):
             await self.send_message("Sorry, only Spoiler Log races have a planning time.")
 
     async def ex_time(self, args, message):
-        if not self.state.get("seed_rolled"):
-            await self.send_message("Seed has not been generated yet!")
+        if not self.state.get("spoiler_log_seed_rolled"):
+            await self.send_message("Seed has not been rolled yet!")
         elif self.state.get("race_started"):
             await self.send_message("Race has already started!")
         else:
@@ -275,21 +314,33 @@ class RandoHandler(RaceHandler):
             await self.roll_and_send(args, message)
 
 
-    async def roll_and_send(self, args, message):
-        if self.state.get("seed_rolled"):
+        self.state["permalink"] = permalink
+        self.state["permalink_available"] = True
+
+        await self.send_message(f"Permalink: {permalink}")
+
+    async def ex_startspoilerlograce(self, args, message):
+        if self.state.get("locked") and not can_monitor(message):
             await self.send_message(
-                "Seed already generated!"
+                "Seed rolling is locked. Only the creator of this room, a race monitor, or a moderator can roll a seed."
             )
             return
 
-        self.loop.create_task(self.roll())
+        if self.state.get("spoiler_log_seed_rolled"):
+            await self.send_message("Seed already rolled!")
+            return
 
-    async def roll(self):
-        self.state["seed_rolled"] = True
+        settings_permalink = self.SPOILER_LOG_PERMALINK
+        if len(args) > 0:
+            settings_permalink = args[0]
 
-        await self.send_message("Generating seed...")
+        self.loop.create_task(self.start_spoiler_log_race(settings_permalink))
 
-        permalink = self.state.get("permalink")
+    async def start_spoiler_log_race(self, settings_permalink):
+        self.state["spoiler_log_seed_rolled"] = True
+
+        await self.send_message("Rolling seed...")
+
         generated_seed = self.generator.generate_seed(permalink, (self.state.get("race_type") == RaceType.SPOILER))
         spoiler_log_url = generated_seed.get("spoiler_log_url")
         permalink = generated_seed.get("permalink")
@@ -304,7 +355,9 @@ class RandoHandler(RaceHandler):
         self.state["file_name"] = file_name
         self.state["race_start_time"] = datetime.now() + self.state.get("race_delay")
 
-        await self.send_message("Seed generated! Lets see how this turned out......")
+        await self.send_message("Seed rolled! Preparation stage starts in 15 seconds...")
+
+        await asyncio.sleep(10)
         await self.send_message("5...")
         await asyncio.sleep(1)
         await self.send_message("4...")
