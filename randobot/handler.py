@@ -6,7 +6,7 @@ from enum import Enum
 
 class RandoHandler(RaceHandler):
     stop_at = ["cancelled", "finished"]
-    
+
     STANDARD_RACE_GOAL = "Standard Race - Defeat Ganondorf"
     STANDARD_RACE_PERMALINK = "MS44LjAAU3RhbmRhcmRSYWNlRXhhbXBsZQAXAwQATjDADAAAAAAAAAA="
     SPOILER_LOG_GOAL = "Spoiler Log"
@@ -213,6 +213,7 @@ class RandoHandler(RaceHandler):
             self.state["tingle_tuner_banned"] = True
             await self.send_message("The Tingle Tuner is now banned in this race.")
 
+    @monitor_cmd
     async def ex_unbantingletuner(self, args, message):
         if not self.state.get("tingle_tuner_banned"):
             await self.send_message("The Tingle Tuner is already allowed in this race.")
@@ -290,6 +291,12 @@ class RandoHandler(RaceHandler):
         self.state["unlocked"] = False
         await self.send_mesage("Seeds may now be rolled by anyone.")
 
+    @monitor_cmd
+    async def ex_reset(self, args, message):
+        self.state["permalink"] = None
+        self.state["permalink_available"] = False
+        await self.send_message("The Permalink has been reset.")
+        
     async def ex_rollseed(self, args, message):
         if self.state.get("locked") and not can_monitor(message):
             await self.send_mesage("Seeds are currently locked to Race Monitors, the Room Creators, or Category Moderators.")
