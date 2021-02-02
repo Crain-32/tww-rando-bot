@@ -3,3 +3,4 @@ __pycache__
 .venv
 spoiler_log_*.txt
 permalink_*.txt
+notes.txt

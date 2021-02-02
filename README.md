@@ -1,7 +1,7 @@
 # tww-rando-bot
 
-A [racetime.gg](https://racetime.gg) chat bot application for automatically 
-generating [TWW Randomizer](https://github.com/LagoLunatic/wwrando) seeds in race rooms.
+A [racetime.gg](https://racetime.gg) chat bot application for automatically
+generating [TWW Randomizer](https://github.com/LagoLunatic/wwrando) seeds in race rooms. This fork contains unstable test code. Use at your own risk
 
 ## How to get started
 
