@@ -57,6 +57,7 @@ class RandoHandler(RaceHandler):
                         if self.state.get("next_ten_minute_warning") == 600:
                             await self.send_message("You have 10 minutes until the race starts!")
                             await self.send_message("Please start your stream if you haven't done so already!")
+                            self.state["next_ten_minute_warning"] = self.state.get("next_ten_minute_warning") - 600
                         else:
                             time_in_minutes = self.state.get("next_ten_minute_warning") % 60
                             await self.send_message(f"You have {time_in_minutes} until the race starts!")
